@@ -1,0 +1,96 @@
+{
+  "_args": [
+    [
+      {
+        "raw": "node-occ-csg-editor-display@git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+        "scope": null,
+        "escapedName": "node-occ-csg-editor-display",
+        "name": "node-occ-csg-editor-display",
+        "rawSpec": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+        "spec": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+        "type": "hosted",
+        "hosted": {
+          "type": "github",
+          "ssh": "git@github.com:antony-marion/node-occ-csg-editor-display-forked.git",
+          "sshUrl": "git+ssh://git@github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+          "httpsUrl": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+          "gitUrl": "git://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+          "shortcut": "github:antony-marion/node-occ-csg-editor-display-forked",
+          "directUrl": "https://raw.githubusercontent.com/antony-marion/node-occ-csg-editor-display-forked/master/package.json"
+        }
+      },
+      "C:\\Users\\antony\\projects\\cartoonline_06_06\\frontend_server"
+    ]
+  ],
+  "_from": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+  "_id": "node-occ-csg-editor-display@0.1.11",
+  "_inBundle": false,
+  "_inCache": true,
+  "_integrity": "sha1-vSinALAtekDytrD4DmV5SGX3wPo=",
+  "_location": "/node-occ-csg-editor-display",
+  "_phantomChildren": {},
+  "_requested": {
+    "raw": "node-occ-csg-editor-display@git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+    "scope": null,
+    "escapedName": "node-occ-csg-editor-display",
+    "name": "node-occ-csg-editor-display",
+    "rawSpec": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+    "spec": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+    "type": "hosted",
+    "hosted": {
+      "type": "github",
+      "ssh": "git@github.com:antony-marion/node-occ-csg-editor-display-forked.git",
+      "sshUrl": "git+ssh://git@github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+      "httpsUrl": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+      "gitUrl": "git://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+      "shortcut": "github:antony-marion/node-occ-csg-editor-display-forked",
+      "directUrl": "https://raw.githubusercontent.com/antony-marion/node-occ-csg-editor-display-forked/master/package.json"
+    }
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git#80c831ff19b8444eb64f497858afb9283cf6a133",
+  "_shasum": "18768565d2a1ece49959968fcf52c43df2c259c1",
+  "_shrinkwrap": null,
+  "_spec": "node-occ-csg-editor-display@git+https://github.com/antony-marion/node-occ-csg-editor-display-forked.git",
+  "_where": "C:\\Users\\antony\\projects\\cartoonline_06_06\\frontend_server",
+  "author": {
+    "name": "Etienne Rossignon"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenWebCAD/node-occ-csg-editor-display/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "chalk": "^2.1.0",
+    "node-occ": "^0.2.1",
+    "node-occ-csg-editor": "git+https://github.com/OpenWebCAD/node-occ-csg-editor.git#0.1.10",
+    "underscore": "^1.8.3"
+  },
+  "deprecated": false,
+  "description": ".",
+  "devDependencies": {
+    "async": "^2.5.0",
+    "b2a": "^1.0.7",
+    "mocha": "^3.5.0",
+    "should": "^13.0.1"
+  },
+  "gitHead": "80c831ff19b8444eb64f497858afb9283cf6a133",
+  "homepage": "https://github.com/OpenWebCAD/node-occ-csg-editor-display#readme",
+  "license": "MIT",
+  "main": "index.js",
+  "name": "node-occ-csg-editor-display",
+  "optionalDependencies": {},
+  "private": true,
+  "readme": "\"# node-occ-csg-editor-display-forked\" \r\n",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpenWebCAD/node-occ-csg-editor-display.git"
+  },
+  "scripts": {
+    "test": "npm test"
+  },
+  "version": "0.1.11"
+}
