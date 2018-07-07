@@ -2,7 +2,7 @@ const nodeocc = require("node-occ");
 const assert = require("assert");
 const _ = require("underscore");
 const geometry_editor = require("node-occ-csg-editor");
-
+const GeomTransfoBatch = geometry_editor.GeomTransfoBatch;
 const occ = nodeocc.occ;
 const shapeFactory = nodeocc.shapeFactory;
 const scriptRunner = nodeocc.scriptRunner;
@@ -59,9 +59,8 @@ function buildResponse(cacheBefore, data, logs) {
     response.meshes = meshes;
 
 
-
     response.solids = data.map(x => {
-        if ( x.shape ) {
+        if (x.shape) {
             return {
                 '_id': x.shape._id,
                 'uuid': x.shape.uuid,
@@ -76,23 +75,69 @@ function buildResponse(cacheBefore, data, logs) {
 }
 
 
+function getName(item) {
+    // const GeomPrimitiveObject = geometry_editor.GeomPrimitiveObject;
+    // if (item instanceof GeomPrimitiveObject)
+    if (item.geometries && item.geometries.length > 0) {
+        const name = (item.geometries.map(x => x.name)).join("U");
+        return name;
+    }
+    return item.name;
+}
+
+function createDisplayString(item, context) {
+    const name = getName(item);
+    let str = "var " + name + ";\n";
+    str += "try {\n";
+    str += "    " + name + " = " + item.toScript(context) + "\n";
+    if (item.isVisible) {
+        str += "    display(" + name + ",\"" + item._id + "\");\n";
+    }
+    str += "} catch(err) {\n";
+    str += `   console.log("building ${name} with id ${item._id} has failed");\n`;
+    str += `   console.log(" err = " + err.message);\n`;
+    str += "   reportError(err,\"" + item._id + "\");\n";
+    str += "}\n";
+
+    return str;
+}
+
+function createDisplayStringForConnectors(localItem, context) {
+    let str = "";
+    const nbOfConnectors = localItem.getWidgetConnectors().length;
+    for (var l = 0; l < nbOfConnectors; l++) {
+        str = createDisplayString(localItem.getWidgetConnectors()[l]._linked, context) + str;
+
+        if (localItem.getWidgetConnectors()[l]._linked) {
+            str = createDisplayStringForConnectors(localItem.getWidgetConnectors()[l]._linked, context) + str;
+        }
+    }
+
+    return str;
+}
+
+
 function convertToScriptEx(geometryEditor) {
 
     const context = {};
 
     function convertItemToScript(item) {
 
-        let str = "var " + item.name + ";\n";
-        str += "try {\n";
-        str += "    " + item.name + " = " + item.toScript(context) + "\n";
-        if (item.isVisible) {
-            str += "    display(" + item.name + ",\"" + item._id + "\");\n";
+        let str = "";
+
+        // First define intermediate dependancies shapes for an eventuel following compound object
+        if (item.geometries) {
+            for (var j = 0; j < item.geometries.length; j++) {
+                let localItem = item.geometries[j];
+                str = createDisplayStringForConnectors(localItem, context) + str;
+            }
         }
-        str += "} catch(err) {\n";
-        str += `   console.log("building ${item.name} with id ${item._id} has failed");\n`;
-        str += `   console.log(" err = " + err.message);\n`;
-        str += "   reportError(err,\"" + item._id + "\");\n";
-        str += "}\n";
+
+        // Then create a simple shape or a compound Object
+        str += createDisplayString(item, context);
+        // if (item.additionalSource) {
+        //     str += createDisplayString(item.additionalSource, context);
+        // }
 
         return str;
     }
