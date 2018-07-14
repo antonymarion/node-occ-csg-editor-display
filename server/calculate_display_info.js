@@ -1,4 +1,4 @@
-const nodeocc = require("node-occ");
+const nodeocc = require("@antonymarion/node-occ");
 const assert = require("assert");
 const _ = require("underscore");
 const geometry_editor = require("node-occ-csg-editor");
