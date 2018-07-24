@@ -117,6 +117,17 @@ function createDisplayStringForConnectors(localItem, context) {
 }
 
 
+function overrideParametersName(localItem, str) {
+    const lgth = localItem.parameters.length;
+
+    for (let i = 0; i < lgth; i++) {
+        const param = localItem.parameters[i];
+        str = str.replace(param.id.split("_" +localItem.name)[0], param.id);
+    }
+    return str;
+}
+
+
 function convertToScriptEx(geometryEditor) {
 
     const context = {};
@@ -131,19 +142,22 @@ function convertToScriptEx(geometryEditor) {
                 let localItem = item.geometries[j];
                 str = createDisplayStringForConnectors(localItem, context) + str;
             }
+            str += createDisplayString(item, context);
+            str = overrideParametersName(item.geometries[0], str);
         }
-
-        // Then create a simple shape or a compound Object
-        str += createDisplayString(item, context);
-        // if (item.additionalSource) {
-        //     str += createDisplayString(item.additionalSource, context);
-        // }
+        else {
+            // Then create a simple shape or a compound Object
+            str += createDisplayString(item, context);
+            // if (item.additionalSource) {
+            //     str += createDisplayString(item.additionalSource, context);
+            // }
+        }
 
         return str;
     }
 
     function convertParameterToScript(item) {
-        if (!item){
+        if (!item) {
             return;
         }
         if (!item.geometries) {
@@ -152,8 +166,8 @@ function convertToScriptEx(geometryEditor) {
         }
         const parameters = item.parameters;
 
-        let stringToReturn="";
-        parameters.forEach(param =>{
+        let stringToReturn = "";
+        parameters.forEach(param => {
             const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
             stringToReturn += "var $" + param.id + " = " + value + ";\n"
         });
