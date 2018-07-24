@@ -142,14 +142,32 @@ function convertToScriptEx(geometryEditor) {
         return str;
     }
 
-    function convertParameterToScript(param) {
-        const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
-        return "var $" + param.id + " = " + value + ";"
+    function convertParameterToScript(item) {
+        if (!item){
+            return;
+        }
+        if (!item.geometries) {
+            const value = (item.value === null || item.value === undefined) ? item.defaultValue : item.value;
+            return "var $" + item.id + " = " + value + ";"
+        }
+        const parameters = item.parameters;
+
+        let stringToReturn="";
+        parameters.forEach(param =>{
+            const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
+            stringToReturn += "var $" + param.id + " = " + value + ";\n"
+        });
+        return stringToReturn;
     }
 
     let lines = [];
     const parameters = geometryEditor.getParameters();
+
+    // Parameters from GeomObject or ParametersEditor
     lines = lines.concat(parameters.map(convertParameterToScript));
+    lines = lines.concat(geometryEditor.items.map(convertParameterToScript));
+
+    // Geometries
     lines = lines.concat(geometryEditor.items.map(convertItemToScript));
     return lines.join("\n");
 }
