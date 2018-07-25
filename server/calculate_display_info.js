@@ -118,11 +118,14 @@ function createDisplayStringForConnectors(localItem, context) {
 
 
 function overrideParametersName(localItem, str) {
+    if (!localItem.parameters) return "";
     const lgth = localItem.parameters.length;
 
     for (let i = 0; i < lgth; i++) {
         const param = localItem.parameters[i];
-        str = str.replace(param.id.split("_" +localItem.name)[0], param.id);
+        var find = param.id.split("_" +localItem.name)[0];
+        let re = new RegExp(find, 'g');
+        str = str.replace(re, param.id);
     }
     return str;
 }
