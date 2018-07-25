@@ -123,7 +123,7 @@ function overrideParametersName(localItem, str) {
 
     for (let i = 0; i < lgth; i++) {
         const param = localItem.parameters[i];
-        var find = param.id.split("_" +localItem.name)[0];
+        var find = param.id.split("_" + localItem.name + "_" + localItem.geometriesLibGUID)[0];
         let re = new RegExp(find, 'g');
         str = str.replace(re, param.id);
     }
