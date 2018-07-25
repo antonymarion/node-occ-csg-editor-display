@@ -25,7 +25,6 @@
   "name": "node-occ-csg-editor-display",
   "optionalDependencies": {},
   "readmeFilename": "README.md",
-  "scripts": {
-  },
-  "version": "0.1.11"
+  "scripts": {},
+  "version": "0.1.12"
 }
