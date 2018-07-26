@@ -118,7 +118,7 @@ function createDisplayStringForConnectors(localItem, context) {
 
 
 function overrideParametersName(localItem, str) {
-    if (!localItem.parameters) return "";
+    if (!localItem || !localItem.parameters) return "";
     const lgth = localItem.parameters.length;
 
     for (let i = 0; i < lgth; i++) {
@@ -140,7 +140,7 @@ function convertToScriptEx(geometryEditor) {
         let str = "";
 
         // First define intermediate dependancies shapes for an eventuel following compound object
-        if (item.geometries) {
+        if (item.geometries && item.geometries.length>0) {
             for (var j = 0; j < item.geometries.length; j++) {
                 let localItem = item.geometries[j];
                 str = createDisplayStringForConnectors(localItem, context) + str;
