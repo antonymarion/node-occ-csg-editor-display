@@ -102,14 +102,20 @@ function createDisplayString(item, context) {
     return str;
 }
 
-function createDisplayStringForConnectors(localItem, context) {
+function createDisplayStringForConnectors(localItem, isVisible, name,  context) {
     let str = "";
     const nbOfConnectors = localItem.getWidgetConnectors().length;
     for (var l = 0; l < nbOfConnectors; l++) {
+        if (localItem.getWidgetConnectors()[l]._linked.name ==name && isVisible){
+            localItem.getWidgetConnectors()[l]._linked.isVisible = true;
+        }
+        else {
+            localItem.getWidgetConnectors()[l]._linked.isVisible = false;
+        }
         str = createDisplayString(localItem.getWidgetConnectors()[l]._linked, context) + str;
 
         if (localItem.getWidgetConnectors()[l]._linked) {
-            str = createDisplayStringForConnectors(localItem.getWidgetConnectors()[l]._linked, context) + str;
+            str = createDisplayStringForConnectors(localItem.getWidgetConnectors()[l]._linked, isVisible, name, context) + str;
         }
     }
 
@@ -118,7 +124,12 @@ function createDisplayStringForConnectors(localItem, context) {
 
 
 function overrideParametersName(localItem, str) {
-    if (!localItem || !localItem.parameters) return "";
+    // if (!localItem.parameters) return "";
+
+    if (!localItem) return "";
+    if (!localItem.parameters ) return "";
+
+
     const lgth = localItem.parameters.length;
 
     for (let i = 0; i < lgth; i++) {
@@ -140,10 +151,10 @@ function convertToScriptEx(geometryEditor) {
         let str = "";
 
         // First define intermediate dependancies shapes for an eventuel following compound object
-        if (item.geometries && item.geometries.length>0) {
+        if (item.geometries) {
             for (var j = 0; j < item.geometries.length; j++) {
                 let localItem = item.geometries[j];
-                str = createDisplayStringForConnectors(localItem, context) + str;
+                str = createDisplayStringForConnectors(localItem, item.isVisible, item.name, context) + str;
             }
             str += createDisplayString(item, context);
             str = overrideParametersName(item.geometries[0], str);
