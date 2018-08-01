@@ -103,8 +103,7 @@ function createDisplayString(item, context) {
 
 
         //
-        if (item.parameters)
-        {
+        if (item.parameters) {
             item.parameters = item.parameters.filter(k => !!k);
             let paramIdRootNames = [];
 
@@ -119,7 +118,7 @@ function createDisplayString(item, context) {
                 if (param) {
                     var find = param.id.split("_" + item.origin.geometryName + "_" + item.origin.libName)[0];
                     paramIdRootNames.push(find);
-                    let re = new RegExp(find+"(?![[:alnum:]]|[a-zA-Z]*_)", 'g');
+                    let re = new RegExp(find + "(?![[:alnum:]]|[a-zA-Z]*_)", 'g');
                     str = str.replace(re, param.id);
                 }
             });
@@ -177,10 +176,18 @@ function overrideParametersName(localItem, str) {
 
     const lgth = localItem.parameters.length;
 
+
+    localItem.parameters = localItem.parameters.sort(function (a, b) {
+        // ASC  -> a.length - b.length
+        // DESC -> b.length - a.length
+        return b.id.length - a.id.length;
+    });
+
+
     for (let i = 0; i < lgth; i++) {
         const param = localItem.parameters[i];
         var find = param.id.split("_" + localItem.name + "_" + localItem.geometriesLibGUID)[0];
-        let re = new RegExp(find, 'g');
+        let re = new RegExp(find + "(?![[:alnum:]]|[a-zA-Z]*_)", 'g');
         str = str.replace(re, param.id);
     }
     return str;
@@ -219,13 +226,23 @@ function convertToScriptEx(geometryEditor) {
         if (!item) {
             return;
         }
-        if (!item.geometries) {
-            const value = (item.value === null || item.value === undefined) ? item.defaultValue : item.value;
-            return "var $" + item.id + " = " + value + ";"
+        if (!item.geometries && item.parameters && item.parameters.length > 0) {
+            item.parameters =  item.parameters.filter(param=> !!param);
+            const parameters = item.parameters;
+            if (!parameters) {return;}
+            let returnStr = parameters.map(param => {
+                const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
+                return "var $" + param.id + " = " + value + ";"
+            }).join("\n");
+            return returnStr;
         }
-        const parameters = item.parameters;
+        let parameters = item.parameters;
+        if (!item.parameters) {
+            return;
+        }
 
         let stringToReturn = "";
+        parameters = parameters.filter(param=> !!param);
         parameters.forEach(param => {
             const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
             stringToReturn += "var $" + param.id + " = " + value + ";\n"
@@ -239,6 +256,8 @@ function convertToScriptEx(geometryEditor) {
     // Parameters from GeomObject or ParametersEditor
     lines = lines.concat(parameters.map(convertParameterToScript));
     lines = lines.concat(geometryEditor.items.map(convertParameterToScript));
+
+    lines = _.uniq(lines);
 
     // Geometries
     geometryEditor.items = _.uniq(geometryEditor.items, function (w) {
