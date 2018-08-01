@@ -86,27 +86,72 @@ function getName(item) {
 }
 
 function createDisplayString(item, context) {
-    const name = getName(item);
-    let str = "var " + name + ";\n";
-    str += "try {\n";
-    str += "    " + name + " = " + item.toScript(context) + "\n";
-    if (item.isVisible) {
-        str += "    display(" + name + ",\"" + item._id + "\");\n";
-    }
-    str += "} catch(err) {\n";
-    str += `   console.log("building ${name} with id ${item._id} has failed");\n`;
-    str += `   console.log(" err = " + err.message);\n`;
-    str += "   reportError(err,\"" + item._id + "\");\n";
-    str += "}\n";
 
-    return str;
+    if (item.origin.geometryName != "" && item.origin.libName != "") {
+        const name = getName(item);
+        let str = "var " + name + ";\n";
+        str += "try {\n";
+        str += "    " + name + " = " + item.toScript(context) + "\n";
+        if (item.isVisible) {
+            str += "    display(" + name + ",\"" + item._id + "\");\n";
+        }
+        str += "} catch(err) {\n";
+        str += `   console.log("building ${name} with id ${item._id} has failed");\n`;
+        str += `   console.log(" err = " + err.message);\n`;
+        str += "   reportError(err,\"" + item._id + "\");\n";
+        str += "}\n";
+
+
+        //
+        if (item.parameters)
+        {
+            item.parameters = item.parameters.filter(k => !!k);
+            let paramIdRootNames = [];
+
+            item.parameters = item.parameters.sort(function (a, b) {
+                // ASC  -> a.length - b.length
+                // DESC -> b.length - a.length
+                return b.id.length - a.id.length;
+            });
+
+
+            item.parameters.forEach(param => {
+                if (param) {
+                    var find = param.id.split("_" + item.origin.geometryName + "_" + item.origin.libName)[0];
+                    paramIdRootNames.push(find);
+                    let re = new RegExp(find+"(?![[:alnum:]]|[a-zA-Z]*_)", 'g');
+                    str = str.replace(re, param.id);
+                }
+            });
+
+        }
+
+        return str;
+    }
+    else {
+        const name = getName(item);
+        let str = "var " + name + ";\n";
+        str += "try {\n";
+        str += "    " + name + " = " + item.toScript(context) + "\n";
+        if (item.isVisible) {
+            str += "    display(" + name + ",\"" + item._id + "\");\n";
+        }
+        str += "} catch(err) {\n";
+        str += `   console.log("building ${name} with id ${item._id} has failed");\n`;
+        str += `   console.log(" err = " + err.message);\n`;
+        str += "   reportError(err,\"" + item._id + "\");\n";
+        str += "}\n";
+
+        return str;
+    }
+
 }
 
-function createDisplayStringForConnectors(localItem, isVisible, name,  context) {
+function createDisplayStringForConnectors(localItem, isVisible, name, context) {
     let str = "";
     const nbOfConnectors = localItem.getWidgetConnectors().length;
     for (var l = 0; l < nbOfConnectors; l++) {
-        if (localItem.getWidgetConnectors()[l]._linked.name ==name && isVisible){
+        if (localItem.getWidgetConnectors()[l]._linked.name == name && isVisible) {
             localItem.getWidgetConnectors()[l]._linked.isVisible = true;
         }
         else {
@@ -127,7 +172,7 @@ function overrideParametersName(localItem, str) {
     // if (!localItem.parameters) return "";
 
     if (!localItem) return "";
-    if (!localItem.parameters ) return "";
+    if (!localItem.parameters) return "";
 
 
     const lgth = localItem.parameters.length;
@@ -151,7 +196,7 @@ function convertToScriptEx(geometryEditor) {
         let str = "";
 
         // First define intermediate dependancies shapes for an eventuel following compound object
-        if (item.geometries) {
+        if (!!item.geometries) {
             for (var j = 0; j < item.geometries.length; j++) {
                 let localItem = item.geometries[j];
                 str = createDisplayStringForConnectors(localItem, item.isVisible, item.name, context) + str;
@@ -196,6 +241,9 @@ function convertToScriptEx(geometryEditor) {
     lines = lines.concat(geometryEditor.items.map(convertParameterToScript));
 
     // Geometries
+    geometryEditor.items = _.uniq(geometryEditor.items, function (w) {
+        return w.name
+    });
     lines = lines.concat(geometryEditor.items.map(convertItemToScript));
     return lines.join("\n");
 }
