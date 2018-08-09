@@ -237,8 +237,9 @@ function convertToScriptEx(geometryEditor) {
             return returnStr;
         }
         let parameters = item.parameters;
-        if (!item.parameters) {
-            return;
+        if (!parameters) {
+            const value = (item.value === null || item.value === undefined) ? item.defaultValue : item.value;
+            return "var $" + item.id + " = " + value + ";\n"
         }
 
         let stringToReturn = "";
