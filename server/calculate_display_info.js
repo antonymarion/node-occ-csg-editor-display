@@ -8,7 +8,7 @@ const shapeFactory = nodeocc.shapeFactory;
 const scriptRunner = nodeocc.scriptRunner;
 const fast_occ = nodeocc.fastBuilder.occ;
 const chalk = require("chalk");
-const doDebug = false;
+const doDebug = true;
 
 function buildResponse(cacheBefore, data, logs) {
 
@@ -86,80 +86,30 @@ function getName(item) {
 }
 
 function createDisplayString(item, context) {
-
-    if (item.origin.geometryName != "" && item.origin.libName != "") {
-        const name = getName(item);
-        let str = "var " + name + ";\n";
-        str += "try {\n";
-        str += "    " + name + " = " + item.toScript(context) + "\n";
-        if (item.isVisible) {
-            str += "    display(" + name + ",\"" + item._id + "\");\n";
-        }
-        str += "} catch(err) {\n";
-        str += `   console.log("building ${name} with id ${item._id} has failed");\n`;
-        str += `   console.log(" err = " + err.message);\n`;
-        str += "   reportError(err,\"" + item._id + "\");\n";
-        str += "}\n";
-
-
-        //
-        if (item.parameters) {
-            item.parameters = item.parameters.filter(k => !!k);
-            let paramIdRootNames = [];
-
-            item.parameters = item.parameters.sort(function (a, b) {
-                // ASC  -> a.length - b.length
-                // DESC -> b.length - a.length
-                return b.id.length - a.id.length;
-            });
-
-
-            item.parameters.forEach(param => {
-                if (param) {
-                    var find = param.id.split("_" + item.origin.geometryName + "_" + item.origin.libName)[0];
-                    paramIdRootNames.push(find);
-                    let re = new RegExp(find + "(?![[:alnum:]]|[a-zA-Z]*_)", 'g');
-                    str = str.replace(re, param.id);
-                }
-            });
-
-        }
-
-        return str;
+    const name = getName(item);
+    let str = "var " + name + ";\n";
+    str += "try {\n";
+    str += "    " + name + " = " + item.toScript(context) + "\n";
+    if (item.isVisible) {
+        str += "    display(" + name + ",\"" + item._id + "\");\n";
     }
-    else {
-        const name = getName(item);
-        let str = "var " + name + ";\n";
-        str += "try {\n";
-        str += "    " + name + " = " + item.toScript(context) + "\n";
-        if (item.isVisible) {
-            str += "    display(" + name + ",\"" + item._id + "\");\n";
-        }
-        str += "} catch(err) {\n";
-        str += `   console.log("building ${name} with id ${item._id} has failed");\n`;
-        str += `   console.log(" err = " + err.message);\n`;
-        str += "   reportError(err,\"" + item._id + "\");\n";
-        str += "}\n";
+    str += "} catch(err) {\n";
+    str += `   console.log("building ${name} with id ${item._id} has failed");\n`;
+    str += `   console.log(" err = " + err.message);\n`;
+    str += "   reportError(err,\"" + item._id + "\");\n";
+    str += "}\n";
 
-        return str;
-    }
-
+    return str;
 }
 
-function createDisplayStringForConnectors(localItem, isVisible, name, context) {
+function createDisplayStringForConnectors(localItem, context) {
     let str = "";
     const nbOfConnectors = localItem.getWidgetConnectors().length;
     for (var l = 0; l < nbOfConnectors; l++) {
-        if (localItem.getWidgetConnectors()[l]._linked.name == name && isVisible) {
-            localItem.getWidgetConnectors()[l]._linked.isVisible = true;
-        }
-        else {
-            localItem.getWidgetConnectors()[l]._linked.isVisible = false;
-        }
         str = createDisplayString(localItem.getWidgetConnectors()[l]._linked, context) + str;
 
         if (localItem.getWidgetConnectors()[l]._linked) {
-            str = createDisplayStringForConnectors(localItem.getWidgetConnectors()[l]._linked, isVisible, name, context) + str;
+            str = createDisplayStringForConnectors(localItem.getWidgetConnectors()[l]._linked, context) + str;
         }
     }
 
@@ -168,26 +118,13 @@ function createDisplayStringForConnectors(localItem, isVisible, name, context) {
 
 
 function overrideParametersName(localItem, str) {
-    // if (!localItem.parameters) return "";
-
-    if (!localItem) return "";
     if (!localItem.parameters) return "";
-
-
     const lgth = localItem.parameters.length;
-
-
-    localItem.parameters = localItem.parameters.sort(function (a, b) {
-        // ASC  -> a.length - b.length
-        // DESC -> b.length - a.length
-        return b.id.length - a.id.length;
-    });
-
 
     for (let i = 0; i < lgth; i++) {
         const param = localItem.parameters[i];
         var find = param.id.split("_" + localItem.name + "_" + localItem.geometriesLibGUID)[0];
-        let re = new RegExp(find + "(?![[:alnum:]]|[a-zA-Z]*_)", 'g');
+        let re = new RegExp(find, 'g');
         str = str.replace(re, param.id);
     }
     return str;
@@ -203,10 +140,10 @@ function convertToScriptEx(geometryEditor) {
         let str = "";
 
         // First define intermediate dependancies shapes for an eventuel following compound object
-        if (!!item.geometries) {
+        if (item.geometries) {
             for (var j = 0; j < item.geometries.length; j++) {
                 let localItem = item.geometries[j];
-                str = createDisplayStringForConnectors(localItem, item.isVisible, item.name, context) + str;
+                str = createDisplayStringForConnectors(localItem, context) + str;
             }
             str += createDisplayString(item, context);
             str = overrideParametersName(item.geometries[0], str);
@@ -226,24 +163,17 @@ function convertToScriptEx(geometryEditor) {
         if (!item) {
             return;
         }
-        if (!item.geometries && item.parameters && item.parameters.length > 0) {
-            item.parameters =  item.parameters.filter(param=> !!param);
-            const parameters = item.parameters;
-            if (!parameters) {return;}
-            let returnStr = parameters.map(param => {
-                const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
-                return "var $" + param.id + " = " + value + ";"
-            }).join("\n");
-            return returnStr;
-        }
-        let parameters = item.parameters;
-        if (!parameters) {
+        if (!item.geometries && !!item.defaultValue && !!item.displayName) {
             const value = (item.value === null || item.value === undefined) ? item.defaultValue : item.value;
-            return "var $" + item.id + " = " + value + ";\n"
+            return "var $" + item.id + " = " + value + ";"
+        }
+        const parameters = item.parameters;
+
+        if (!parameters) {
+            return;
         }
 
         let stringToReturn = "";
-        parameters = parameters.filter(param=> !!param);
         parameters.forEach(param => {
             const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
             stringToReturn += "var $" + param.id + " = " + value + ";\n"
@@ -258,13 +188,11 @@ function convertToScriptEx(geometryEditor) {
     lines = lines.concat(parameters.map(convertParameterToScript));
     lines = lines.concat(geometryEditor.items.map(convertParameterToScript));
 
-    lines = _.uniq(lines);
-
     // Geometries
-    geometryEditor.items = _.uniq(geometryEditor.items, function (w) {
-        return w.name
-    });
     lines = lines.concat(geometryEditor.items.map(convertItemToScript));
+
+    lines = lines.filter(x=>x!=undefined);
+
     return lines.join("\n");
 }
 
