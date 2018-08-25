@@ -163,7 +163,7 @@ function convertToScriptEx(geometryEditor) {
         if (!item) {
             return;
         }
-        if (!item.geometries && !!item.defaultValue && !!item.displayName) {
+        if (!item.geometries && !!item.defaultValue && (!!item.displayName || !!item.id)) {
             const value = (item.value === null || item.value === undefined) ? item.defaultValue : item.value;
             return "var $" + item.id + " = " + value + ";"
         }
@@ -191,7 +191,7 @@ function convertToScriptEx(geometryEditor) {
     // Geometries
     lines = lines.concat(geometryEditor.items.map(convertItemToScript));
 
-    lines = lines.filter(x=>x!=undefined);
+    lines = lines.filter(x => x != undefined);
 
     return lines.join("\n");
 }
