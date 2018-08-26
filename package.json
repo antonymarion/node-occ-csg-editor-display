@@ -8,7 +8,7 @@
   "bundleDependencies": false,
   "dependencies": {
     "chalk": "^2.1.0",
-    "node-occ": "git+https://github.com/antonymarion/node-occ.git",
+    "node-occ": "^0.3.0",
     "node-occ-csg-editor": "git+https://github.com/antonymarion/node-occ-csg-editor.git",
     "underscore": "^1.8.3"
   },
