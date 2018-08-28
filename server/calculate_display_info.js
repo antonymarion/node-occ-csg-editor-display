@@ -118,6 +118,7 @@ function createDisplayStringForConnectors(localItem, context) {
 
 
 function overrideParametersName(localItem, str) {
+    if (!localItem) return "";
     if (!localItem.parameters) return "";
     const lgth = localItem.parameters.length;
 
