@@ -8,7 +8,7 @@ const shapeFactory = nodeocc.shapeFactory;
 const scriptRunner = nodeocc.scriptRunner;
 const fast_occ = nodeocc.fastBuilder.occ;
 const chalk = require("chalk");
-const doDebug = true;
+const doDebug = false;
 
 function buildResponse(cacheBefore, data, logs) {
 
