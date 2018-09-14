@@ -128,6 +128,8 @@ function overrideParametersName(localItem, str) {
         let re = new RegExp(find, 'g');
         str = str.replace(re, param.id);
     }
+
+    return str;
 }
 String.prototype.replaceBetween = function(start, end, what) {
     return this.substring(0, start) + what + this.substring(end);
