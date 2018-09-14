@@ -168,13 +168,14 @@ function convertToScriptEx(geometryEditor) {
             const value = (item.value === null || item.value === undefined) ? item.defaultValue : item.value;
             return "var $" + item.id + " = " + value + ";"
         }
-        const parameters = item.parameters;
+        let parameters = item.parameters;
 
         if (!parameters) {
             return;
         }
 
         let stringToReturn = "";
+        parameters = parameters.filter(w=>w);
         parameters.forEach(param => {
             const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
             stringToReturn += "var $" + param.id + " = " + value + ";\n"
