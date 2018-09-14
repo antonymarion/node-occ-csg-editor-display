@@ -153,11 +153,7 @@ function overrideParametersNameForGeometries(localItem, str) {
                 let find = param.id.split("_" + localItem.origin.geometryName + "_" + localItem.origin.libName)[0];
                 paramIdRootNames.push(find);
                 let re = new RegExp(find + "(?![A-Za-z0-9]|[a-zA-Z]*_)", "g");
-                let arrayOfIdxes = re.exec(str);
-                arrayOfIdxes.forEach(idx=>{
-                    str = str.replace(re, param.id);
-                });
-
+                str = str.replace(re, param.id);
             }
         });
 
