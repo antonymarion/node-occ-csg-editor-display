@@ -128,6 +128,41 @@ function overrideParametersName(localItem, str) {
         let re = new RegExp(find, 'g');
         str = str.replace(re, param.id);
     }
+}
+String.prototype.replaceBetween = function(start, end, what) {
+    return this.substring(0, start) + what + this.substring(end);
+};
+
+
+function overrideParametersNameForGeometries(localItem, str) {
+    // même code que node-occ-csg-editor-display => à refactoriser!
+    if (localItem.parameters) {
+        localItem.parameters = localItem.parameters.filter(k => !!k);
+        let paramIdRootNames = [];
+
+        localItem.parameters = localItem.parameters.sort(function (a, b) {
+            // ASC  -> a.length - b.length
+            // DESC -> b.length - a.length
+            return b.id.length - a.id.length;
+        });
+
+
+
+        localItem.parameters.forEach(param => {
+            if (param && param.id!==param.displayName) {
+                let find = param.id.split("_" + localItem.origin.geometryName + "_" + localItem.origin.libName)[0];
+                paramIdRootNames.push(find);
+                let re = new RegExp(find + "(?![A-Za-z0-9]|[a-zA-Z]*_)", "g");
+                let arrayOfIdxes = re.exec(str);
+                arrayOfIdxes.forEach(idx=>{
+                    str = str.replace(re, param.id);
+                });
+
+            }
+        });
+
+    }
+
     return str;
 }
 
@@ -141,13 +176,21 @@ function convertToScriptEx(geometryEditor) {
         let str = "";
 
         // First define intermediate dependancies shapes for an eventuel following compound object
-        if (item.geometries) {
-            for (var j = 0; j < item.geometries.length; j++) {
-                let localItem = item.geometries[j];
-                str = createDisplayStringForConnectors(localItem, context) + str;
+        if (item.geometries || (!item.geometries && item.origin.libName != "" && item.origin.geometryName != "")) {
+            // if (item.geometries) {
+            if (item.geometries) {
+                for (var j = 0; j < item.geometries.length; j++) {
+                    let localItem = item.geometries[j];
+                    str = createDisplayStringForConnectors(localItem, context) + str;
+                }
+                str += createDisplayString(item, context);
+
+                str = overrideParametersName(item.geometries[0], str);
             }
-            str += createDisplayString(item, context);
-            str = overrideParametersName(item.geometries[0], str);
+            else {
+                str += createDisplayString(item, context);
+                str = overrideParametersNameForGeometries(item, str);
+            }
         }
         else {
             // Then create a simple shape or a compound Object
@@ -175,7 +218,7 @@ function convertToScriptEx(geometryEditor) {
         }
 
         let stringToReturn = "";
-        parameters = parameters.filter(w=>w);
+        parameters = parameters.filter(w => w);
         parameters.forEach(param => {
             const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
             stringToReturn += "var $" + param.id + " = " + value + ";\n"
@@ -194,6 +237,9 @@ function convertToScriptEx(geometryEditor) {
     lines = lines.concat(geometryEditor.items.map(convertItemToScript));
 
     lines = lines.filter(x => x != undefined);
+
+    // lines lines.forEach(u=>ifu.split("\n"));
+    lines = _.uniq(lines);
 
     return lines.join("\n");
 }
