@@ -171,6 +171,17 @@ function buildResponse(cacheBefore, data, logs) {
     response.logs = logs;
     response.displayCache = displayCache;
     response.meshes = meshes;
+    response.solids = data.map(x => {
+        if (x.shape) {
+            return {
+                '_id': x.shape._id,
+                'uuid': x.shape.uuid,
+                'name': x.shape.name,
+                'area': x.shape.area,
+                'volume': x.shape.volume
+            };
+        }
+    });
     return response;
 
 }
