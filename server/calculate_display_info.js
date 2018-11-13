@@ -1,5 +1,6 @@
 const nodeocc = require("node-occ");
 const assert = require("assert");
+const async = require("async");
 const _ = require("underscore");
 const geometry_editor = require("node-occ-csg-editor");
 const GeomTransfoBatch = geometry_editor.GeomTransfoBatch;
@@ -20,6 +21,8 @@ function buildStepResponse(cacheBefore, data, logs, callback) {
 
     let response = {solids: [], logs: []};
     let counter = 1;
+
+    const customColor = [Math.random(), Math.random(), Math.random()];
 
     async.forEach(data,
         function (dataItem, callback) {
@@ -48,59 +51,60 @@ function buildStepResponse(cacheBefore, data, logs, callback) {
 
                     async.series([
                         function (callback) {
-                            occ.readSTEP("./frontend_server/public/models/kuka.stp", function (err, _solids) {
+                            if (!shape.cmd || shape.cmd.indexOf("makeStep") === -1) {
+                                return callback();
+                            }
+                            else {
 
-                                solids = _solids;
+                                const guid = shape.cmd.match(/makeStep\(\"(.*)\"\)/)[1];
+                                occ.readSTEP("./frontend_server/databases/repository/" + guid + ".stp", function (err, _solids) {
 
-                                if (err) {
-                                    return callback(new Error(" readStep returned error = " + err.message + " while reading " + filename + " _solids =", _solids.length));
-                                } else {
-                                    console.log(" read ", solids.length, " solids");
-                                    let i = 0;
-                                    _solids.forEach(solid => {
-                                        solid.name = solid.name || "tete" + i;
-                                        i++;
-                                        if (i < 13) {
-                                            let mesh = occ.buildSolidMesh(solid);
-                                            displayCache[dataItem.id] = {hash: mesh.uuid, err: null};
-                                            meshes[dataItem.id+i] = {mesh: mesh};
-                                        }
-                                    });
-                                    return callback();
-                                }
+                                    solids = _solids;
+                                    var compound = occ.compound(solids);
 
-                            });
-                        },
-                        function (callback) {
+                                    if (err) {
+                                        return callback(new Error(" readStep returned error = " + err.message + " while reading " + filename + " _solids =", _solids.length));
+                                    } else {
+                                        console.log(" read ", solids.length, " solids");
+                                        let i = 0;
+                                        _solids.forEach(solid => {
+                                            solid.name = solid.name || guid + i;
+                                            i++;
+                                            // if (i < 13)
+                                            {
+                                                solid.customColor = customColor;
+                                                let mesh = occ.buildSolidMesh(solid);
+                                                displayCache[dataItem.id] = {hash: mesh.uuid, err: null};
+                                                meshes[dataItem.id + i] = {mesh: mesh};
+                                            }
+                                        });
 
-                            let mesh = occ.buildSolidMesh(shape);
-                            displayCache[dataItem.id] = {hash: shape.uuid, err: null};
-                            meshes[dataItem.id] = {mesh: mesh};
+                                        response.logs = logs;
+                                        response.displayCache = displayCache;
+                                        response.meshes = meshes;
 
-                            response.logs = logs;
-                            response.displayCache = displayCache;
-                            response.meshes = meshes;
+                                        response.solids = data.map(x => {
+                                            if (x.shape) {
+                                                return {
+                                                    '_id': x.shape._id,
+                                                    'uuid': x.shape.uuid,
+                                                    'name': x.shape.name,
+                                                    'area': x.shape.area,
+                                                    'volume': x.shape.volume
+                                                };
+                                            }
+                                        });
+                                        return callback();
+                                    }
 
-
-                            response.solids = data.map(x => {
-                                if (x.shape) {
-                                    return {
-                                        '_id': x.shape._id,
-                                        'uuid': x.shape.uuid,
-                                        'name': x.shape.name,
-                                        'area': x.shape.area,
-                                        'volume': x.shape.volume
-                                    };
-                                }
-                            });
-
-                            callback();
+                                });
+                            }
 
                         }
                     ], function (err) {
 
 
-                        return callback();
+                        return callback(null, response);
 
                     });
 
@@ -188,11 +192,11 @@ function createDisplayString(item, context) {
     str += "try {\n";
     str += "    " + name + " = " + item.toScript(context) + "\n";
     if (item.isVisible) {
-        if (!item.filletMode){
+        if (!item.filletMode) {
             str += "    display(" + name + ",\"" + item._id + "\");\n";
         }
         else {
-            str += "    displayFillet(" + name + ",\"" + item._id+ "\","+ item.filletFactor + ");\n";
+            str += "    displayFillet(" + name + ",\"" + item._id + "\"," + item.filletFactor + ");\n";
         }
     }
     str += "} catch(err) {\n";
@@ -400,7 +404,7 @@ function calculate_display_info(geometryEditor, callback) {
             const edges = shape.getEdges();
             // const edges_for_filet = [selectEdge(edges, p2), selectEdge(edges, p5)];
             // shape = occ.makeFillet(shape,shape.getCommonEdges(shape.getFaces()[0], shape.getFaces()[5]),2)
-            shape = occ.makeFillet(shape,edges,factor/10)
+            shape = occ.makeFillet(shape, edges, factor / 10)
             shape._id = metaData;
             runner.env.data.push({shape: shape, id: metaData, hash: shape.hash});
         },
@@ -429,11 +433,34 @@ function calculate_display_info(geometryEditor, callback) {
     });
     const solidBuilderScript = "" + script + "";
 
+
+    const isThereStepInside = solidBuilderScript ? (solidBuilderScript.indexOf("makeStep") !== -1 && solidBuilderScript.indexOf("makeStep(\"\")") === -1) : false;
+
     runner.run(solidBuilderScript,
         function done_callback() {
 
+            // first response is the response with data filtered (not containing step file paths)
             const response = buildResponse(displayCache, runner.env.data, runner.env.logs);
-            callback(null, response);
+
+            if (!isThereStepInside) {
+                return callback(null, response);
+            }
+            else {
+
+                // second response is the response including only data created from step files path
+                buildStepResponse(displayCache, runner.env.data, runner.env.logs, function (err, response2) {
+
+                    if (err) {
+                        return callback(err);
+                    }
+                    // Finally merge response 1 & 2
+                    return callback(null, Object.assign(response, response2));
+
+                });
+
+            }
+
+
             // buildResponse(displayCache, runner.env.data, runner.env.logs, function (err, responseTOSend) {
             //
             //     geometryEditor.displayCache = responseTOSend.displayCache;
