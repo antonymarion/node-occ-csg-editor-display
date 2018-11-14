@@ -12,12 +12,11 @@ const chalk = require("chalk");
 const doDebug = false;
 
 
-function buildStepResponse(cacheBefore, data, logs, callback) {
+function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
     assert(data instanceof Array);
 
     const displayCache = {};
-    const meshes = {};
 
     let response = {solids: [], logs: []};
     let counter = 1;
@@ -60,24 +59,24 @@ function buildStepResponse(cacheBefore, data, logs, callback) {
                                 occ.readSTEP("./frontend_server/databases/repository/" + guid + ".stp", function (err, _solids) {
 
                                     solids = _solids;
-                                    var compound = occ.compound(solids);
+                                    const solid = occ.compound(solids);
 
                                     if (err) {
                                         return callback(new Error(" readStep returned error = " + err.message + " while reading " + filename + " _solids =", _solids.length));
                                     } else {
                                         console.log(" read ", solids.length, " solids");
-                                        let i = 0;
-                                        _solids.forEach(solid => {
-                                            solid.name = solid.name || guid + i;
-                                            i++;
-                                            // if (i < 13)
-                                            {
-                                                solid.customColor = customColor;
-                                                let mesh = occ.buildSolidMesh(solid);
-                                                displayCache[dataItem.id] = {hash: mesh.uuid, err: null};
-                                                meshes[dataItem.id + i] = {mesh: mesh};
-                                            }
-                                        });
+                                        // let i = 0;
+                                        // _solids.forEach(solid => {
+                                        solid.name = solid.name || guid; // + i;
+                                        // i++;
+                                        {
+                                            solid.customColor = customColor;
+                                            let mesh = occ.buildSolidMesh(solid);
+                                            displayCache[dataItem.id] = {hash: mesh.uuid, err: null};
+                                            meshes[dataItem.id] = {mesh: mesh};
+                                            // meshes[dataItem.id + i] = {mesh: mesh};
+                                        }
+                                        // });
 
                                         response.logs = logs;
                                         response.displayCache = displayCache;
@@ -104,7 +103,7 @@ function buildStepResponse(cacheBefore, data, logs, callback) {
                     ], function (err) {
 
 
-                        return callback(null, response);
+                        return callback(err, response);
 
                     });
 
@@ -119,6 +118,7 @@ function buildStepResponse(cacheBefore, data, logs, callback) {
             }
 
         }, function (err) {
+            // response.meshes = response.meshes.concat(data)
             return callback(err, response);
         });
 }
@@ -459,13 +459,12 @@ function calculate_display_info(geometryEditor, callback) {
             else {
 
                 // second response is the response including only data created from step files path
-                buildStepResponse(displayCache, runner.env.data, runner.env.logs, function (err, response2) {
+                buildStepResponse(displayCache, response.meshes, runner.env.data, runner.env.logs, function (err, response2) {
 
                     if (err) {
                         return callback(err);
                     }
-                    // Finally merge response 1 & 2
-                    return callback(null, Object.assign(response, response2));
+                    return callback(null, response2);
 
                 });
 
