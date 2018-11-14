@@ -1,4 +1,5 @@
 const nodeocc = require("node-occ");
+const fs = require("fs");
 const assert = require("assert");
 const async = require("async");
 const _ = require("underscore");
@@ -56,7 +57,15 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
                             else {
 
                                 const guid = shape.cmd.match(/makeStep\(\"(.*)\"\)/)[1];
-                                occ.readSTEP("./frontend_server/databases/repository/" + guid + ".stp", function (err, _solids) {
+
+                                let path = "./frontend_server/databases/repository/" + guid + ".stp";
+                                const upperCase = fs.existsSync("./frontend_server/databases/repository/" + guid + ".STEP");
+
+                                if (upperCase) {
+                                    path = "./frontend_server/databases/repository/" + guid + ".STEP";
+                                }
+
+                                occ.readSTEP(path, function (err, _solids) {
 
                                     solids = _solids;
                                     const solid = occ.compound(solids);
