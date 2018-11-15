@@ -90,7 +90,7 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
                                 const upperCase = fs.existsSync(construct_databasesFilename( guid + ".STEP"));
 
                                 if (upperCase) {
-                                    path =  construct_databasesFilename(  guid + ".STEP" );
+                                    pathToStep =  construct_databasesFilename(  guid + ".STEP" );
                                 }
 
                                 console.log("my_path", pathToStep);
