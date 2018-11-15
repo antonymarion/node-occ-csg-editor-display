@@ -13,6 +13,33 @@ const chalk = require("chalk");
 const doDebug = false;
 
 
+function construct_databasesFilename(filename) {
+
+    // 1st choice , use the databases folder above this file
+    let databasesFolder = path.join(process.cwd(), "databases/repository");
+    if (!fs.existsSync(databasesFolder)) {
+        databasesFolder = path.join(__dirname, "../databases/repository");
+        if (!fs.existsSync(databasesFolder)) {
+            databasesFolder = path.join(__dirname, "../../databases/repository");
+            if (!fs.existsSync(databasesFolder)) {
+                // take databases env variable
+                databasesFolder = process.env["DATABASES"];
+
+                if (!fs.existsSync(databasesFolder)) {
+                    throw new Error(" Cannot find databases folder. please set the databases variable to a temporary folder");
+                }
+            }
+        }
+    }
+
+    let str;
+
+    str = path.join(databasesFolder, filename);
+    str = str.replace(/\\/gm, "/");
+
+    return str;
+}
+
 function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
     assert(data instanceof Array);
@@ -58,11 +85,11 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
                                 const guid = shape.cmd.match(/makeStep\(\"(.*)\"\)/)[1];
 
-                                let path = "./frontend_server/databases/repository/" + guid + ".stp";
-                                const upperCase = fs.existsSync("./frontend_server/databases/repository/" + guid + ".STEP");
+                                let path = construct_databasesFilename( guid + ".stp" );
+                                const upperCase = fs.existsSync(construct_databasesFilename( guid + ".STEP"));
 
                                 if (upperCase) {
-                                    path = "./frontend_server/databases/repository/" + guid + ".STEP";
+                                    path =  construct_databasesFilename(  guid + ".STEP" );
                                 }
 
                                 occ.readSTEP(path, function (err, _solids) {
