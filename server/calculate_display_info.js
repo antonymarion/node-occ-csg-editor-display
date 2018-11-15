@@ -92,6 +92,7 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
                                     path =  construct_databasesFilename(  guid + ".STEP" );
                                 }
 
+                                console.log("my_path", path);
                                 occ.readSTEP(path, function (err, _solids) {
 
                                     solids = _solids;
