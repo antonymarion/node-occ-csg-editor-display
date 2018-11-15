@@ -11,6 +11,7 @@ const scriptRunner = nodeocc.scriptRunner;
 const fast_occ = nodeocc.fastBuilder.occ;
 const chalk = require("chalk");
 const doDebug = false;
+const path = require("path");
 
 
 function construct_databasesFilename(filename) {
@@ -85,14 +86,14 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
                                 const guid = shape.cmd.match(/makeStep\(\"(.*)\"\)/)[1];
 
-                                let path = construct_databasesFilename( guid + ".stp" );
+                                let pathToStep = construct_databasesFilename( guid + ".stp" );
                                 const upperCase = fs.existsSync(construct_databasesFilename( guid + ".STEP"));
 
                                 if (upperCase) {
                                     path =  construct_databasesFilename(  guid + ".STEP" );
                                 }
 
-                                console.log("my_path", path);
+                                console.log("my_path", pathToStep);
                                 occ.readSTEP(path, function (err, _solids) {
 
                                     solids = _solids;
