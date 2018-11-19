@@ -99,7 +99,7 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
                                 }
 
                                 console.log("my_path", pathToStep);
-                                occ.readSTEP(path, function (err, _solids) {
+                                occ.readSTEP(pathToStep, function (err, _solids) {
 
                                     solids = _solids;
                                     const solid = occ.compound(solids);
