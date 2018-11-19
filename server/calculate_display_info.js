@@ -19,10 +19,13 @@ function construct_databasesFilename(filename) {
     // 1st choice , use the databases folder above this file
     let databasesFolder = path.join(process.cwd(), "databases/repository");
     if (!fs.existsSync(databasesFolder)) {
+        console.log("?exist ../databases/repository");
         databasesFolder = path.join(__dirname, "../databases/repository");
         if (!fs.existsSync(databasesFolder)) {
+            console.log("?exist ../../databases/repository");
             databasesFolder = path.join(__dirname, "../../databases/repository");
             if (!fs.existsSync(databasesFolder)) {
+                  console.log("?exist ENV_DATABASES");
                 // take databases env variable
                 databasesFolder = process.env["DATABASES"];
 
@@ -86,9 +89,11 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
                                 const guid = shape.cmd.match(/makeStep\(\"(.*)\"\)/)[1];
 
+                                console.log("guid, ",guid);
+                                
                                 let pathToStep = construct_databasesFilename( guid + ".stp" );
                                 const upperCase = fs.existsSync(construct_databasesFilename( guid + ".STEP"));
-
+                                
                                 if (upperCase) {
                                     pathToStep =  construct_databasesFilename(  guid + ".STEP" );
                                 }
