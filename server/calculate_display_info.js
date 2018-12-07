@@ -25,9 +25,9 @@ function construct_databasesFilename(filename) {
             console.log("?exist ../../databases/repository");
             databasesFolder = path.join(__dirname, "../../databases/repository");
             if (!fs.existsSync(databasesFolder)) {
-                  console.log("?exist ENV_DATABASES");
+                  console.log("?exist ENV_STEPFOLDER");
                 // take databases env variable
-                databasesFolder = process.env["DATABASES"];
+                databasesFolder = process.env["STEPFOLDER"];
 
                 if (!fs.existsSync(databasesFolder)) {
                     throw new Error(" Cannot find databases folder. please set the databases variable to a temporary folder");
