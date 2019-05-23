@@ -102,6 +102,7 @@ function extractSteps(script) {
     return arrayOfSteps;
 
 }
+exports.extractSteps = extractSteps;
 
 function buildStepResponse(cacheBefore, steps, meshes, data, logs, callback) {
 
