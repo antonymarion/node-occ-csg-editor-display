@@ -25,7 +25,7 @@ function construct_databasesFilename(filename) {
             console.log("?exist ../../databases/repository");
             databasesFolder = path.join(__dirname, "../../databases/repository");
             if (!fs.existsSync(databasesFolder)) {
-                  console.log("?exist ENV_STEPFOLDER");
+                console.log("?exist ENV_STEPFOLDER");
                 // take databases env variable
                 databasesFolder = process.env["STEPFOLDER"];
 
@@ -44,7 +44,66 @@ function construct_databasesFilename(filename) {
     return str;
 }
 
-function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
+
+function extractSteps(script) {
+
+    const regSTEPGUID = new RegExp("\\s*.*csg\\.makeStep\\(\"(.*)\"\\).*", "gm");
+    let array1 = null;
+    let arrayOfSteps = [];
+
+    while ((array1 = regSTEPGUID.exec(script)) !== null) {
+
+        const guidSTEP = array1[1];
+        const stepDefinitionLine = array1[0];
+
+        const regRotation = new RegExp("\\s*csg\\.makeStep\\(\".*\"\\).*\\.rotate\\(\\[(.*),(.*),(.*)\\],\\[(.*),(.*),(.*)\\],(.*)\\).*", "gm");
+        const regTranslation = new RegExp("\\s*csg\\.makeStep\\(\".*\"\\).*\\.translate\\(\\[(.*),(.*),(.*)\\]\\).*", "gm");
+        const regShapeName = new RegExp("\\s*(.*) = csg\\.makeStep\\(.*");
+        const shapeName = regShapeName.exec(array1[0])[1];
+        const regID = new RegExp("\\s*display\\(" + shapeName + ",\"(.*)\"\\)");
+        const _id = regID.exec(script)[1];
+        // display(shape2,"dde94078-7b2a-4e74-aa9a-c640a4e360e2");
+
+        const matchesRotation = regRotation.exec(stepDefinitionLine);
+        const matchesTranslation = regTranslation.exec(stepDefinitionLine);
+
+        const isARotation = matchesRotation !== null;
+        const isATranslation = matchesTranslation !== null;
+
+
+        arrayOfSteps.push({
+            shapeName: shapeName,
+            _id: _id,
+            guidSTEP: guidSTEP
+        });
+
+        if (isATranslation) {
+
+            let translationVector = [parseFloat(matchesTranslation[1]), parseFloat(matchesTranslation[2]), parseFloat(matchesTranslation[3])];
+            arrayOfSteps.filter(u => u._id === _id)[0].translation = {vector: translationVector};
+        }
+
+        if (isARotation) {
+
+
+            let rotationCenter = [parseFloat(matchesRotation[1]), parseFloat(matchesRotation[2]), parseFloat(matchesRotation[3])];
+            let rotationAxis = [parseFloat(matchesRotation[4]), parseFloat(matchesRotation[5]), parseFloat(matchesRotation[6])];
+            let rotationValue = parseFloat(matchesRotation[7]);
+
+            arrayOfSteps.filter(u => u._id === _id)[0].rotation = {
+                center: rotationCenter,
+                axis: rotationAxis,
+                value: rotationValue
+            };
+        }
+
+    }
+
+    return arrayOfSteps;
+
+}
+
+function buildStepResponse(cacheBefore, steps, meshes, data, logs, callback) {
 
     assert(data instanceof Array);
 
@@ -52,7 +111,7 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
     let response = {solids: [], logs: []};
     let counter = 1;
-
+    const stepsIds = steps.map(u => u._id)
     const customColor = [Math.random(), Math.random(), Math.random()];
 
     async.forEach(data,
@@ -78,36 +137,48 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
                 try {
 
+
                     shape.name = "id_" + shape._id;
+                    const idxShape = stepsIds.indexOf(shape._id);
+                    const isAStep = idxShape !== -1;
 
                     async.series([
                         function (callback) {
-                            if (!shape.cmd || shape.cmd.indexOf("makeStep") === -1) {
+                            if (!shape.cmd || !isAStep) {
                                 return callback();
-                            }
-                            else {
+                            } else {
 
-                                const guid = shape.cmd.match(/makeStep\(\"(.*)\"\)/)[1];
+                                const currentStep = steps[idxShape];
+                                const guid = currentStep.guidSTEP;
 
-                                console.log("guid, ",guid);
-                                
-                                let pathToStep = construct_databasesFilename( guid + ".stp" );
-                                const upperCase = fs.existsSync(construct_databasesFilename( guid + ".STEP"));
-                                
+                                const rotation = currentStep.rotation;
+                                const translation = currentStep.translation;
+
+                                let pathToStep = construct_databasesFilename(guid + ".stp");
+                                const upperCase = fs.existsSync(construct_databasesFilename(guid + ".STEP"));
+
                                 if (upperCase) {
-                                    pathToStep =  construct_databasesFilename(  guid + ".STEP" );
+                                    pathToStep = construct_databasesFilename(guid + ".STEP");
                                 }
 
-                                console.log("my_path", pathToStep);
                                 occ.readSTEP(pathToStep, function (err, _solids) {
 
                                     solids = _solids;
+
+                                    if (!!rotation) {
+                                        solids = solids.map(solid => solid.rotate(rotation.center, rotation.axis, rotation.value));
+                                    }
+
+                                    if (!!translation) {
+                                        solids = solids.map(solid => solid.translate(translation.vector));
+                                    }
+
                                     const solid = occ.compound(solids);
 
                                     if (err) {
                                         return callback(new Error(" readStep returned error = " + err.message + " while reading " + filename + " _solids =", _solids.length));
                                     } else {
-                                        console.log(" read ", solids.length, " solids");
+                                        // console.log(" read ", solids.length, " solids");
                                         // let i = 0;
                                         // _solids.forEach(solid => {
                                         solid.name = solid.name || guid; // + i;
@@ -150,8 +221,7 @@ function buildStepResponse(cacheBefore, meshes, data, logs, callback) {
 
                     });
 
-                }
-                catch (err) {
+                } catch (err) {
                     //Xx console.log(" meshing shape  ", shape._id ," has failed with error ",err.message);
                     displayCache[dataItem.id] = {hash: shape.uuid, err: err.message};
                     meshes[dataItem.id] = {mesh: null};
@@ -201,8 +271,7 @@ function buildResponse(cacheBefore, data, logs) {
                 displayCache[dataItem.id] = {hash: shape.uuid, err: null};
                 meshes[dataItem.id] = {mesh: mesh};
 
-            }
-            catch (err) {
+            } catch (err) {
                 //Xx console.log(" meshing shape  ", shape._id ," has failed with error ",err.message);
                 displayCache[dataItem.id] = {hash: shape.uuid, err: err.message};
                 meshes[dataItem.id] = {mesh: null};
@@ -248,8 +317,7 @@ function createDisplayString(item, context) {
     if (item.isVisible) {
         if (!item.filletMode) {
             str += "    display(" + name + ",\"" + item._id + "\");\n";
-        }
-        else {
+        } else {
             str += "    displayFillet(" + name + ",\"" + item._id + "\"," + item.filletFactor + ");\n";
         }
     }
@@ -344,13 +412,11 @@ function convertToScriptEx(geometryEditor) {
                 str += createDisplayString(item, context);
 
                 str = overrideParametersName(item.geometries[0], str);
-            }
-            else {
+            } else {
                 str += createDisplayString(item, context);
                 str = overrideParametersNameForGeometries(item, str);
             }
-        }
-        else {
+        } else {
             // Then create a simple shape or a compound Object
             str += createDisplayString(item, context);
             // if (item.additionalSource) {
@@ -426,7 +492,7 @@ function calculate_display_info(geometryEditor, callback) {
         data: [],
 
         displayFillet: function (shape, metaData, factor) {
-            if (typeof(metaData) !== "string") {
+            if (typeof (metaData) !== "string") {
                 throw new Error("Internal Error, expecting a meta data of type string");
             }
             if (!shape || !shape instanceof occ.Solid) {
@@ -465,7 +531,7 @@ function calculate_display_info(geometryEditor, callback) {
 
         display: function (shape, metaData) {
 
-            if (typeof(metaData) !== "string") {
+            if (typeof (metaData) !== "string") {
                 throw new Error("Internal Error, expecting a meta data of type string");
             }
             if (!shape || !shape instanceof occ.Solid) {
@@ -498,11 +564,12 @@ function calculate_display_info(geometryEditor, callback) {
 
             if (!isThereStepInside) {
                 return callback(null, response);
-            }
-            else {
+            } else {
+
+                const steps = extractSteps(solidBuilderScript);
 
                 // second response is the response including only data created from step files path
-                buildStepResponse(displayCache, response.meshes, runner.env.data, runner.env.logs, function (err, response2) {
+                buildStepResponse(displayCache, steps, response.meshes, runner.env.data, runner.env.logs, function (err, response2) {
 
                     if (err) {
                         return callback(err);
