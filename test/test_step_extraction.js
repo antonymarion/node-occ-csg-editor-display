@@ -1,7 +1,7 @@
 const should = require("should");
 const fs  = require("fs");
 const path = require("path");
-const extractSteps = require("./server/calculate_display_info").extractSteps;
+const extractSteps = require("./../server/calculate_display_info").extractSteps;
 
 // nota : http://stackoverflow.com/questions/805107/how-to-create-multiline-strings
 function buildMultiLineString(f) {
