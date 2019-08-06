@@ -311,11 +311,14 @@ function getName(item) {
 }
 
 function createDisplayString(item, context) {
+    // if item is not directly inside geometry editor, then it must not be displayed
+    const isInGeometryTree = context.geometryItems.filter(x => x._id === item._id).length === 1;
     const name = getName(item);
     let str = "var " + name + ";\n";
     str += "try {\n";
     str += "    " + name + " = " + item.toScript(context) + "\n";
-    if (item.isVisible) {
+    // add display instruction for geometries in geometry editor
+    if (item.isVisible && isInGeometryTree) {
         if (!item.filletMode) {
             str += "    display(" + name + ",\"" + item._id + "\");\n";
         } else {
@@ -396,7 +399,9 @@ function overrideParametersNameForGeometries(localItem, str) {
 
 function convertToScriptEx(geometryEditor) {
 
-    const context = {};
+    const context = {
+        geometryItems : geometryEditor.items
+    };
 
     function convertItemToScript(item) {
 
@@ -598,3 +603,4 @@ function calculate_display_info(geometryEditor, callback) {
 }
 
 module.exports.calculate_display_info = calculate_display_info;
+module.exports.convertToScriptEx = convertToScriptEx;
