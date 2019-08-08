@@ -5,6 +5,7 @@ const async = require("async");
 const _ = require("underscore");
 const geometry_editor = require("node-occ-csg-editor");
 const GeomTransfoBatch = geometry_editor.GeomTransfoBatch;
+const GeomPrimitiveObject = geometry_editor.GeomPrimitiveObject
 const occ = nodeocc.occ;
 const shapeFactory = nodeocc.shapeFactory;
 const scriptRunner = nodeocc.scriptRunner;
@@ -102,6 +103,7 @@ function extractSteps(script) {
     return arrayOfSteps;
 
 }
+
 exports.extractSteps = extractSteps;
 
 function buildStepResponse(cacheBefore, steps, meshes, data, logs, callback) {
@@ -313,7 +315,12 @@ function getName(item) {
 function createDisplayString(item, context) {
     // if item is not directly inside geometry editor, then it must not be displayed
     const isInGeometryTree = context.geometryItems.filter(x => x._id === item._id).length === 1;
-    const name = getName(item);
+    let name;
+    if (context.parentGeometry) {
+        name = getName(item) + "_" + context.parentGeometry.name;
+    } else {
+        name = getName(item);
+    }
     let str = "var " + name + ";\n";
     str += "try {\n";
     str += "    " + name + " = " + item.toScript(context) + "\n";
@@ -338,18 +345,23 @@ function createDisplayStringForConnectors(localItem, context) {
     let str = "";
     const nbOfConnectors = localItem.getWidgetConnectors().length;
     for (var l = 0; l < nbOfConnectors; l++) {
-        str = createDisplayString(localItem.getWidgetConnectors()[l]._linked, context) + str;
 
         if (localItem.getWidgetConnectors()[l]._linked) {
-            str = createDisplayStringForConnectors(localItem.getWidgetConnectors()[l]._linked, context) + str;
+            const strToAdd = createDisplayStringForConnectors(localItem.getWidgetConnectors()[l]._linked, context) + str;
+            const geomDeclarations = strToAdd.split("}\n");
+            geomDeclarations.forEach(declaration => {
+                if (str.indexOf(declaration) === -1) {
+                    str = str + declaration + "}\n";
+                }
+            });
         }
+        str = str + createDisplayString(localItem.getWidgetConnectors()[l]._linked, context);
     }
 
     return str;
 }
 
-
-function overrideParametersName(localItem, str) {
+function removeSuffixesInParametersName(localItem, str) {
     if (!localItem) return "";
     if (!localItem.parameters) return "";
     const lgth = localItem.parameters.length;
@@ -369,7 +381,7 @@ String.prototype.replaceBetween = function (start, end, what) {
 };
 
 
-function overrideParametersNameForGeometries(localItem, str) {
+function removeSuffixesParametersNameForGeometries(localItem, str) {
     // même code que node-occ-csg-editor-display => à refactoriser!
     if (localItem.parameters) {
         localItem.parameters = localItem.parameters.filter(k => !!k);
@@ -396,11 +408,52 @@ function overrideParametersNameForGeometries(localItem, str) {
     return str;
 }
 
+function overrideGeomCompositesName(localItem, parentName, str) {
+
+    if (!localItem) return "";
+
+    const geometriesToParse = localItem.getWidgetConnectors();
+    const lgth = geometriesToParse.length;
+
+
+    for (let i = 0; i < lgth; i++) {
+        const geom = geometriesToParse[i]._linked;
+        str = overrideGeomCompositesName(geom, parentName, str);
+        let re = new RegExp("(?<![A-Za-z0-9_])" + geom.name + "(?![A-Za-z0-9]|[a-zA-Z]*_)", "g");
+        // str = str.replace(re, geom.name + "_" + localItem.name + "_" + localItem.geometriesLibGUID);
+        // str = str.replace(re, geom.name + "_" + getOldestParentName(geom));
+        str = str.replace(re, geom.name + "_" + parentName);
+    }
+
+    return str;
+}
+
+function overrideParametersName(localItem, str) {
+
+    if (!localItem) return "";
+    if (!localItem.parameters) return str;
+
+    const lgth = localItem.parameters.length;
+
+    localItem.parameters = localItem.parameters.sort(function (a, b) {
+        // ASC  -> a.length - b.length
+        // DESC -> b.length - a.length
+        return b.id.length - a.id.length;
+    });
+
+    for (let i = 0; i < lgth; i++) {
+        const param = localItem.parameters[i];
+        let re = new RegExp(param.id + "(?![A-Za-z0-9]|[a-zA-Z]*_)", "g");
+        str = str.replace(re, param.id + "_" + localItem.name + "_" + localItem.geometriesLibGUID);
+    }
+
+    return str;
+}
 
 function convertToScriptEx(geometryEditor) {
 
     const context = {
-        geometryItems : geometryEditor.items
+        geometryItems: geometryEditor.items
     };
 
     function convertItemToScript(item) {
@@ -413,14 +466,21 @@ function convertToScriptEx(geometryEditor) {
             if (item.geometries) {
                 for (var j = 0; j < item.geometries.length; j++) {
                     let localItem = item.geometries[j];
+                    context.parentGeometry = item;
                     str = createDisplayStringForConnectors(localItem, context) + str;
                 }
-                str += createDisplayString(item, context);
+                delete context.parentGeometry;
+                const strToAdd = createDisplayString(item, context);
+                if (str.indexOf(strToAdd) === -1) {
+                    str += strToAdd;
+                    // str = overrideParametersName(item.geometries[0], str);
+                    str = overrideGeomCompositesName(item.geometries[0], item.name, str);
+                }
 
                 str = overrideParametersName(item.geometries[0], str);
             } else {
                 str += createDisplayString(item, context);
-                str = overrideParametersNameForGeometries(item, str);
+                str = overrideParametersName(item, str);
             }
         } else {
             // Then create a simple shape or a compound Object
@@ -437,38 +497,67 @@ function convertToScriptEx(geometryEditor) {
         if (!item) {
             return;
         }
+
+
+        const isAnObject = item.constructor.name === "GeomPrimitiveObject";
+        // const isAnObject = item.constructor.name === "ParametersDefinition";
+
+        // item is a parameter => print var $paramName = value
         if (!item.geometries && !!item.defaultValue && (!!item.displayName || !!item.id)) {
             const value = (item.value === null || item.value === undefined) ? item.defaultValue : item.value;
             return "var $" + item.id + " = " + value + ";"
-        }
-        let parameters = item.parameters;
+        } else if (isAnObject) { // If item is a GeomPrimitiveObject
+            if (item.geometries.length === 0) {
+                return;
+            }
+            let parameters = isAnObject ? item.geometries[0].parameters : item.parameters;
+            const itemLibGuid = item.geometries[0].geometriesLibGUID;
 
-        if (!parameters) {
-            return;
-        }
 
-        let stringToReturn = "";
-        parameters = parameters.filter(w => w);
-        parameters.forEach(param => {
-            const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
-            stringToReturn += "var $" + param.id + " = " + value + ";\n"
-        });
-        return stringToReturn;
+            if (!parameters) {
+                return;
+            }
+
+            let stringToReturn = "";
+            parameters = parameters.filter(w => w);
+            parameters.forEach(param => {
+                const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
+                stringToReturn += "var $" + param.id + "_" + item.name + "_" + itemLibGuid + " = " + value + ";\n"
+            });
+            return stringToReturn;
+
+        } else { // else item is a GeomPrimitive not a GeomPrimitiveObject
+            let parameters = item.parameters;
+
+            if (!parameters) {
+                return;
+            }
+
+            let stringToReturn = "";
+            parameters = parameters.filter(w => w);
+            parameters.forEach(param => {
+                const value = (param.value === null || param.value === undefined) ? param.defaultValue : param.value;
+                stringToReturn += "var $" + param.id + " = " + value + ";\n"
+            });
+            return stringToReturn;
+        }
     }
+
+
 
     let lines = [];
     const parameters = geometryEditor.getParameters();
 
-    // Parameters from GeomObject or ParametersEditor
+// Parameters from GeomObject or ParametersEditor
     lines = lines.concat(parameters.map(convertParameterToScript));
     lines = lines.concat(geometryEditor.items.map(convertParameterToScript));
 
-    // Geometries
+// Geometries
     lines = lines.concat(geometryEditor.items.map(convertItemToScript));
 
     lines = lines.filter(x => x != undefined);
 
-    // lines lines.forEach(u=>ifu.split("\n"));
+// lines lines.forEach(u=>ifu.split("\n"));
     lines = _.uniq(lines);
 
     return lines.join("\n");
