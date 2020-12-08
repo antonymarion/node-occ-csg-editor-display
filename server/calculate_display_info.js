@@ -693,3 +693,4 @@ function calculate_display_info(geometryEditor, callback) {
 
 module.exports.calculate_display_info = calculate_display_info;
 module.exports.convertToScriptEx = convertToScriptEx;
+module.exports.buildResponse = buildResponse;

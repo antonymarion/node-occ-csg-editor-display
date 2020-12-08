@@ -2,8 +2,13 @@ const util = require("util");
 const calculate_display_info = require("../server/calculate_display_info").calculate_display_info;
 const should = require("should");
 const async = require("async");
-
+const nodeocc = require("node-occ");
+const fast_occ = nodeocc.fastBuilder.occ;
+const shapeFactory = nodeocc.shapeFactory;
+const scriptRunner = nodeocc.scriptRunner
 const geometry_editor = require("node-occ-csg-editor");
+const buildResponse = require("./../server/calculate_display_info").buildResponse;
+const occ = nodeocc.occ;
 
 describe("CalculateDisplayInfo", function () {
 
@@ -168,10 +173,10 @@ describe("CalculateDisplayInfo", function () {
                 });
 
             },
-            function(callback){
+            function (callback) {
                 // now change some parameters
-                g.setParameter("length",20);
-                g.setParameter("thickness",4);
+                g.setParameter("length", 20);
+                g.setParameter("thickness", 4);
                 callback();
             },
             function (callback) {
@@ -189,5 +194,102 @@ describe("CalculateDisplayInfo", function () {
         ], done);
 
 
+    });
+
+    it("should return a mesh with 2 faces (lateral+bottom) in the cone (small radius equals 0)", function (done) {
+
+        const mySimpleConeScriptToEvaluate = "var $volume_of_shape0 = 14.660765716752369;\n" +
+            "var shape0;\n" +
+            "try {\n" +
+            "    shape0 = csg.makeCone([0,0,0],2,[0,0,2],0);\n" +
+            "    display(shape0,\"3eb614d8-2835-40bc-7ed7-584648c53ffe\");\n" +
+            "} catch(err) {\n" +
+            "   console.log(\"building shape0 with id 3eb614d8-2835-40bc-7ed7-584648c53ffe has failed\");\n" +
+            "   console.log(\" err = \" + err.message);\n" +
+            "   reportError(err,\"3eb614d8-2835-40bc-7ed7-584648c53ffe\");\n" +
+            "}\n" +
+            "\n";
+
+        const displayCache = {};
+        const runner = new scriptRunner.ScriptRunner({
+            csg: fast_occ,
+            occ: fast_occ,
+
+            data: [],
+
+            displayFillet: function (shape, metaData, factor) {
+                if (typeof (metaData) !== "string") {
+                    throw new Error("Internal Error, expecting a meta data of type string");
+                }
+                if (!shape || !shape instanceof occ.Solid) {
+                    throw new Error("Internal Error, expecting a shape");
+                }
+
+
+                // --------------------------------------------
+                // Select vertical edges with vertex P1 and P6
+                // --------------------------------------------
+                // function same(a, b, tol) {
+                //     return Math.abs(a - b) < tol;
+                // }
+                // function selectEdge(edges, p) {
+                //
+                //     if (p instanceof occ.Vertex) {
+                //         p = occ.makeVertex(p)
+                //     }
+                //     const results = edges.filter(function (edge) {
+                //         const firstVertex = edge.firstVertex;
+                //         const lastVertex = edge.lastVertex;
+                //         return ( samePoint(firstVertex, p) || samePoint(lastVertex, p)) &&
+                //             same(firstVertex.x, lastVertex.x, 0.01) &&
+                //             same(firstVertex.y, lastVertex.y, 0.01);
+                //     });
+                //     return results[0];
+                // }
+
+                const edges = shape.getEdges();
+                // const edges_for_filet = [selectEdge(edges, p2), selectEdge(edges, p5)];
+                // shape = occ.makeFillet(shape,shape.getCommonEdges(shape.getFaces()[0], shape.getFaces()[5]),2)
+                shape = occ.makeFillet(shape, edges, factor / 10)
+                shape._id = metaData;
+                runner.env.data.push({shape: shape, id: metaData, hash: shape.hash});
+            },
+
+            display: function (shape, metaData) {
+
+                if (typeof (metaData) !== "string") {
+                    throw new Error("Internal Error, expecting a meta data of type string");
+                }
+                if (!shape || !shape instanceof occ.Solid) {
+                    throw new Error("Internal Error, expecting a shape");
+                }
+
+                // const edges = shape.getEdges();
+                // const edges_for_filet = [selectEdge(edges, p2), selectEdge(edges, p5)];
+                // shape = occ.makeFillet(shape,shape.getCommonEdges(shape.getFaces()[0], shape.getFaces()[5]),2)
+                // shape = occ.makeFillet(shape,edges,2)
+                shape._id = metaData;
+                runner.env.data.push({shape: shape, id: metaData, hash: shape.hash});
+            },
+            reportError: function (err, metaData) {
+                //xx console.log("report err =",err);
+                runner.env.data.push({shape: null, id: metaData, hash: null, err: err});
+            },
+            shapeFactory: shapeFactory
+        });
+
+        runner.run(mySimpleConeScriptToEvaluate,
+            function done_callback() {
+
+                const response = buildResponse(displayCache, runner.env.data, runner.env.logs);
+                const myMeshes = Object.keys(response.meshes);
+                myMeshes.length.should.be.eql(1);
+                const theMesh = response.meshes[myMeshes[0]];
+                theMesh.mesh.faces.length.should.be.eql(2);
+                done();
+
+            }, function error_callback(err) {
+                done(err);
+            });
     });
 });
