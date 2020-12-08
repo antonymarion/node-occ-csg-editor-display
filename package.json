@@ -26,7 +26,8 @@
   "optionalDependencies": {},
   "readmeFilename": "README.md",
   "scripts": {
-    "test": "mocha test"
+    "test": "mocha test",
+    "postinstall": "cd node_modules/node-occ/lib/binding && for x in *.7.3.0; do mv \"$x\" \"${x%.7.3.0}.7\"; done && ldconfig ./ &&  ldd occ.node"
   },
   "version": "0.1.12"
 }
