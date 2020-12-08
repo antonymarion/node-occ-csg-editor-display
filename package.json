@@ -27,7 +27,7 @@
   "readmeFilename": "README.md",
   "scripts": {
     "test": "mocha test",
-    "ldd": "cd node_modules/node-occ/lib/binding && for x in *.7.3.0; do mv \"$x\" \"${x%.7.3.0}.7\"; done && ldconfig /home/runner/work/node-occ-csg-editor-display/node-occ-csg-editor-display/node_modules/node-occ/lib/binding/ &&  ldd occ.node"
+    "ldd": "cd node_modules/node-occ/lib/binding && for x in *.7.3.0; do mv \"$x\" \"${x%.7.3.0}.7\"; done && sudo ldconfig /home/runner/work/node-occ-csg-editor-display/node-occ-csg-editor-display/node_modules/node-occ/lib/binding/ &&  sudo  ldd occ.node"
   },
   "version": "0.1.12"
 }
