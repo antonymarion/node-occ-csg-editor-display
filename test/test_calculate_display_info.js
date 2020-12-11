@@ -196,7 +196,7 @@ describe("CalculateDisplayInfo", function () {
 
     });
 
-    it("should return a mesh with 2 faces (lateral+bottom) in the cone (small radius equals 0)", function (done) {
+    it("BUGLinux - should return a mesh with 2 faces (lateral+bottom) in the cone (small radius equals 0)", function (done) {
 
         const mySimpleConeScriptToEvaluate = "var $volume_of_shape0 = 14.660765716752369;\n" +
             "var shape0;\n" +
@@ -286,6 +286,11 @@ describe("CalculateDisplayInfo", function () {
                 myMeshes.length.should.be.eql(1);
                 const theMesh = response.meshes[myMeshes[0]];
                 theMesh.mesh.faces.length.should.be.eql(2);
+
+                console.log("response ", response);
+                console.log("theMesh ", theMesh);
+                console.log("theMesh.mesh ", theMesh.mesh);
+
                 done();
 
             }, function error_callback(err) {
