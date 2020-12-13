@@ -195,7 +195,7 @@ function buildStepResponse(cacheBefore, steps, meshes, data, logs, callback) {
                                         // i++;
                                         {
                                             solid.customColor = customColor;
-                                            let mesh = occ.buildSolidMeshNew(solid);
+                                            let mesh = occ.buildSolidMesh(solid);
                                             displayCache[dataItem.id] = {hash: mesh.uuid, err: null};
                                             meshes[dataItem.id] = {mesh: mesh};
                                             // meshes[dataItem.id + i] = {mesh: mesh};
@@ -277,7 +277,7 @@ function buildResponse(cacheBefore, data, logs) {
             counter++;
             try {
                 shape.name = "id_" + shape._id;
-                let mesh = occ.buildSolidMeshNew(shape);
+                let mesh = occ.buildSolidMesh(shape);
                 displayCache[dataItem.id] = {hash: shape.uuid, err: null};
                 meshes[dataItem.id] = {mesh: mesh};
 
