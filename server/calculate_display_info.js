@@ -20,16 +20,11 @@ function construct_databasesFilename(filename) {
     // 1st choice , use the databases folder above this file
     let databasesFolder = path.join(process.cwd(), "databases/repository");
     if (!fs.existsSync(databasesFolder)) {
-        console.log("?exist ../databases/repository");
         databasesFolder = path.join(__dirname, "../databases/repository");
         if (!fs.existsSync(databasesFolder)) {
-            console.log("?exist ../../databases/repository");
             databasesFolder = path.join(__dirname, "../../databases/repository");
             if (!fs.existsSync(databasesFolder)) {
-                console.log("?exist ENV_STEPFOLDER");
-                // take databases env variable
                 databasesFolder = process.env["STEPFOLDER"];
-
                 if (!fs.existsSync(databasesFolder)) {
                     throw new Error(" Cannot find databases folder. please set the databases variable to a temporary folder");
                 }
@@ -80,15 +75,27 @@ function extractSteps(script) {
 
         if (isATranslation) {
 
-            let translationVector = [parseFloat(matchesTranslation[1]), parseFloat(matchesTranslation[2]), parseFloat(matchesTranslation[3])];
+            let translationVector = [
+                parseFloat(matchesTranslation[1]),
+                parseFloat(matchesTranslation[2]),
+                parseFloat(matchesTranslation[3])
+            ];
             arrayOfSteps.filter(u => u._id === _id)[0].translation = {vector: translationVector};
         }
 
         if (isARotation) {
 
 
-            let rotationCenter = [parseFloat(matchesRotation[1]), parseFloat(matchesRotation[2]), parseFloat(matchesRotation[3])];
-            let rotationAxis = [parseFloat(matchesRotation[4]), parseFloat(matchesRotation[5]), parseFloat(matchesRotation[6])];
+            let rotationCenter = [
+                parseFloat(matchesRotation[1]),
+                parseFloat(matchesRotation[2]),
+                parseFloat(matchesRotation[3])
+            ];
+            let rotationAxis = [
+                parseFloat(matchesRotation[4]),
+                parseFloat(matchesRotation[5]),
+                parseFloat(matchesRotation[6])
+            ];
             let rotationValue = parseFloat(matchesRotation[7]);
 
             arrayOfSteps.filter(u => u._id === _id)[0].rotation = {
@@ -188,7 +195,7 @@ function buildStepResponse(cacheBefore, steps, meshes, data, logs, callback) {
                                         // i++;
                                         {
                                             solid.customColor = customColor;
-                                            let mesh = occ.buildSolidMesh(solid);
+                                            let mesh = occ.buildSolidMeshNew(solid);
                                             displayCache[dataItem.id] = {hash: mesh.uuid, err: null};
                                             meshes[dataItem.id] = {mesh: mesh};
                                             // meshes[dataItem.id + i] = {mesh: mesh};
@@ -270,7 +277,7 @@ function buildResponse(cacheBefore, data, logs) {
             counter++;
             try {
                 shape.name = "id_" + shape._id;
-                let mesh = occ.buildSolidMesh(shape);
+                let mesh = occ.buildSolidMeshNew(shape);
                 displayCache[dataItem.id] = {hash: shape.uuid, err: null};
                 meshes[dataItem.id] = {mesh: mesh};
 

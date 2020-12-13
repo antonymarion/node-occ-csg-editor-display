@@ -196,17 +196,17 @@ describe("CalculateDisplayInfo", function () {
 
     });
 
-    it("should return a mesh with 2 faces (lateral+bottom) in the cone (small radius equals 0)", function (done) {
+    it("BUGLinux - should return a mesh with 2 faces (lateral+bottom) in the cone (small radius equals 0)", function (done) {
 
         const mySimpleConeScriptToEvaluate = "var $volume_of_shape0 = 14.660765716752369;\n" +
             "var shape0;\n" +
             "try {\n" +
             "    shape0 = csg.makeCone([0,0,0],2,[0,0,2],0);\n" +
-            "    display(shape0,\"3eb614d8-2835-40bc-7ed7-584648c53ffe\");\n" +
+            "    display(shape0,'3c918f6c-1abe-4918-e05c-db3d9f0025e6');\n" +
             "} catch(err) {\n" +
-            "   console.log(\"building shape0 with id 3eb614d8-2835-40bc-7ed7-584648c53ffe has failed\");\n" +
+            "   console.log(\"building shape0 with id 3c918f6c-1abe-4918-e05c-db3d9f0025e6 has failed\");\n" +
             "   console.log(\" err = \" + err.message);\n" +
-            "   reportError(err,\"3eb614d8-2835-40bc-7ed7-584648c53ffe\");\n" +
+            "   reportError(err,\"3c918f6c-1abe-4918-e05c-db3d9f0025e6\");\n" +
             "}\n" +
             "\n";
 
@@ -214,79 +214,48 @@ describe("CalculateDisplayInfo", function () {
         const runner = new scriptRunner.ScriptRunner({
             csg: fast_occ,
             occ: fast_occ,
-
             data: [],
-
-            displayFillet: function (shape, metaData, factor) {
-                if (typeof (metaData) !== "string") {
-                    throw new Error("Internal Error, expecting a meta data of type string");
-                }
-                if (!shape || !shape instanceof occ.Solid) {
-                    throw new Error("Internal Error, expecting a shape");
-                }
-
-
-                // --------------------------------------------
-                // Select vertical edges with vertex P1 and P6
-                // --------------------------------------------
-                // function same(a, b, tol) {
-                //     return Math.abs(a - b) < tol;
-                // }
-                // function selectEdge(edges, p) {
-                //
-                //     if (p instanceof occ.Vertex) {
-                //         p = occ.makeVertex(p)
-                //     }
-                //     const results = edges.filter(function (edge) {
-                //         const firstVertex = edge.firstVertex;
-                //         const lastVertex = edge.lastVertex;
-                //         return ( samePoint(firstVertex, p) || samePoint(lastVertex, p)) &&
-                //             same(firstVertex.x, lastVertex.x, 0.01) &&
-                //             same(firstVertex.y, lastVertex.y, 0.01);
-                //     });
-                //     return results[0];
-                // }
-
-                const edges = shape.getEdges();
-                // const edges_for_filet = [selectEdge(edges, p2), selectEdge(edges, p5)];
-                // shape = occ.makeFillet(shape,shape.getCommonEdges(shape.getFaces()[0], shape.getFaces()[5]),2)
-                shape = occ.makeFillet(shape, edges, factor / 10)
-                shape._id = metaData;
-                runner.env.data.push({shape: shape, id: metaData, hash: shape.hash});
-            },
-
             display: function (shape, metaData) {
 
                 if (typeof (metaData) !== "string") {
                     throw new Error("Internal Error, expecting a meta data of type string");
                 }
-                if (!shape || !shape instanceof occ.Solid) {
+                if (!shape || !shape instanceof fast_occ.Solid) {
                     throw new Error("Internal Error, expecting a shape");
                 }
-
-                // const edges = shape.getEdges();
-                // const edges_for_filet = [selectEdge(edges, p2), selectEdge(edges, p5)];
-                // shape = occ.makeFillet(shape,shape.getCommonEdges(shape.getFaces()[0], shape.getFaces()[5]),2)
-                // shape = occ.makeFillet(shape,edges,2)
                 shape._id = metaData;
                 runner.env.data.push({shape: shape, id: metaData, hash: shape.hash});
             },
             reportError: function (err, metaData) {
                 //xx console.log("report err =",err);
                 runner.env.data.push({shape: null, id: metaData, hash: null, err: err});
-            },
-            shapeFactory: shapeFactory
+            }
         });
 
         runner.run(mySimpleConeScriptToEvaluate,
             function done_callback() {
 
+                const data = runner.env.data;
+                const theFaces_input = data[0].shape.faces;
+                Object.keys(theFaces_input).length.should.be.eql(2);
+                console.log("theFaces input,",theFaces_input);
+
                 const response = buildResponse(displayCache, runner.env.data, runner.env.logs);
+
+                // TODO
+                //const cmd =  data[0].shape.cmd;
+                //cmd.should.be.eql("makeCone([0,0,0],2,[0,0,2],0)"); // is makeCone([0,0,0],2,[0,0,2],null)!
+
                 const myMeshes = Object.keys(response.meshes);
                 myMeshes.length.should.be.eql(1);
                 const theMesh = response.meshes[myMeshes[0]];
+
+                // theMesh.mesh.faces.length should be the same!
+                console.log("theMesh,",theMesh);
+                console.log("theFaces output,",theMesh.mesh.faces);
                 theMesh.mesh.faces.length.should.be.eql(2);
-                done();
+
+                return done();
 
             }, function error_callback(err) {
                 done(err);
